@@ -82,10 +82,15 @@
                              <td class="field-container"><textarea rows="2" cols="30" id="txtTo" name="txtTo" class="form-field"></textarea></td>
                          </tr>
                          <tr>
+                             <td class="field-label-CC"><a id="aaddCC" href="javascript:void(0)" >add CC</a><a id="aremoveCC" href="javascript:void(0)">remove CC</a></td>
+                         </tr>
+                         <tr id="CC">
                              <td class="field-label-container"><label for="txtCC" class="field-label">CC:</label></td>
                              <td class="field-container"><textarea rows="2" cols="30" id="txtCC" name="txtCC" class="form-field"></textarea></td>
                          </tr>
-                         <a href="javascript:void(0)" onclick="addCC();">add CC</a>
+
+                         
+                         
                          <tr>
                              <td class="field-label-container"><label for="txtSubject" class="field-label">Subject:</label></td>
                              <td class="field-container"><input type="text" id="txtSubject" name="txtSubject"  class="form-field" /></td>
@@ -109,7 +114,7 @@
         seajs.config({
             base: "sea-modules/",
             alias: {
-                "jquery": "./sea-modules/jquery/jquery/1.10.1/jquery.js",
+                "jquery": "./sea-modules/jquery/jquery-2.0.3.min.js",
             }
         });
         seajs.use('./Reconstruction1/main');

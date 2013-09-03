@@ -3,6 +3,7 @@ define(function(require, exports, module) {
     var helperFun = require('./helperFunctions');
     require('./json');
     require('./zxml');
+    require("../sea-modules/jquery/jquery-2.0.3.min.js");
     /**
      * The mailbox.
      */
@@ -102,7 +103,7 @@ define(function(require, exports, module) {
                     sURL += "&id=" + sId;
 
                 }
-                this.iLoader.src = sURL;
+                $("#iLoader").attr("src", sURL);
             } catch (oException) {
                 this.showNotice("error", oException.message);
             }
@@ -148,40 +149,23 @@ define(function(require, exports, module) {
         },
 
         /**
-         * Makes a request to the server.
-         * @scope protected
-         * @param sAction The action to perform.
-         * @param fnCallback The function to call when the request completes.
-         * @param sId The ID of the message to act on (optional).
+         * [request description]
+         * @param  {[type]} aAction
+         * @param  {[type]} fnCallback
+         * @param  {[type]} sId
+         * @return {[type]}
          */
         request: function (sAction, fnCallback, sId) {
-            if (this.processing) return;
-            try {
-                this.setProcessing(true);
-                var oXmlHttp = zXmlHttp.createRequest();
-                var sURL = constant.urls.sAjaxMailURL + "?folder=" +this.info.folder + "&page=" + this.info.page + "&action=" + sAction;
-                if (sId) {
-                    sURL += "&id=" + sId;
-                }
-
-                oXmlHttp.open("get", sURL, true);
-                oXmlHttp.onreadystatechange = function (){
-                    try {
-                        if (oXmlHttp.readyState == 4) {
-                            if (oXmlHttp.status == 200) {
-                                fnCallback(oXmlHttp.responseText);
-                            } else {
-                                throw new Error("An error occurred while attempting to contact the server. The action (" + sAction + ") did not complete.");
-                            }
-                        }
-                    } catch (oException) {
-                        oMailbox.showNotice("error", oException.message);
-                    }
-                };
-                oXmlHttp.send(null);
-            } catch (oException) {
-                this.showNotice("error", oException.message);
+            if(this.processing) return;
+            this.setProcessing(true);
+            var sURL = constant.urls.sAjaxMailURL + "?folder=" +this.info.folder + "&page=" + this.info.page + "&action=" + sAction;
+            if (sId) {
+                sURL += "&id=" + sId;
             }
+            $.get(sURL, function(data, textStatus, jqXHR) {
+                fnCallback(data);
+            });
+
         },
 
         /**
@@ -203,34 +187,18 @@ define(function(require, exports, module) {
          */
         sendMail: function () {
             if (this.processing) return;
-            this.divComposeMailForm.style.display  = "none";
-            this.divComposeMailStatus.style.display = "block";
+            $("#divComposeMailForm").hide();
+            $("#divComposeMailStatus").show();
 
-            try {
-                this.setProcessing(true);
-                var oXmlHttp = zXmlHttp.createRequest();
-                var sData = helperFun.getRequestBody(document.forms["frmSendMail"]);
-
-                oXmlHttp.open("post", constant.urls.sAjaxMailSendURL, true);
-                oXmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-
-                oXmlHttp.onreadystatechange = function (){
-                    try {
-                        if (oXmlHttp.readyState == 4) {
-                            if (oXmlHttp.status == 200) {
-                                sendConfirmation(oXmlHttp.responseText);
-                            } else {
-                                throw new Error("An error occurred while attempting to contact the server. The mail was not sent.");
-                            }
-                        }
-                    } catch (oException) {
-                        oMailbox.showNotice("error", oException.message);
-                    }
-                };
-                oXmlHttp.send(sData);
-            } catch (oException) {
-                this.showNotice("error", oException.message);
-            }
+            this.setProcessing(true);
+            var sData = helperFun.getRequestBody($("form").get(0));
+            $.ajax({
+                type: "POST",
+                url: constant.urls.sAjaxMailSendURL,
+                data: sData,
+                success: sendConfirmation,
+                dataType: "json"
+            });
         },
 
         /**
@@ -240,7 +208,11 @@ define(function(require, exports, module) {
          */
         setProcessing: function (bProcessing) {
             this.processing = bProcessing;
-            this.divFolderStatus.style.display = bProcessing ? "block" : "none";
+            if(bProcessing) {
+               $("#divFolderStatus").show(); 
+           }else {
+               $("#divFolderStatus").hide();
+           }
         },
 
         /**
@@ -273,13 +245,15 @@ define(function(require, exports, module) {
         },
 
         displayComposeMailForm: function (sTo, sCC, sSubject, sMessage) {
-            this.txtTo.value = sTo;
-            this.txtCC.value = sCC;
-            this.txtSubject.value = sSubject;
-            this.txtMessage.value = sMessage;
-            this.divReadMail.style.display = "none";
-            this.divComposeMail.style.display = "block";
-            this.divFolder.style.display = "none";
+            $("#txtTo").val(sTo);
+            $("#txtCC").val(sCC);
+            $("#txtSubject").val(sSubject);
+            $("#txtSubject").val(sSubject);
+            $("#txtMessage").val(sMessage);
+
+            $("#divReadMail").hide();
+            $("#divComposeMail").show();
+            $("#divFolder").hide();
             this.setProcessing(false);
         },
 
@@ -328,7 +302,7 @@ define(function(require, exports, module) {
          * @scope protected
          */
         init: function () {
-            var colAllElements = document.getElementsByTagName("*");
+            /*var colAllElements = document.getElementsByTagName("*");
             if (colAllElements.length == 0) {
                 colAllElements = document.all;
             }
@@ -337,54 +311,62 @@ define(function(require, exports, module) {
                 if (colAllElements[i].id.length > 0) {
                     this[colAllElements[i].id] = colAllElements[i];
                 }
-            }
-
+            }*/
             //assign event handlers
-            this.imgPrev.onclick = function () {
+            $("#imgPrev").click(function () {
                 oMailbox.prevPage();
-            };
+            });
 
-            this.imgNext.onclick = function () {
+            $("#imgNext").click(function () {
                 oMailbox.nextPage();
-            };
+            });
 
-            this.spnCompose.onclick = function () {
+            $("#spnCompose").click(function () {
                 oMailbox.compose();
-            };
+            });
 
-            this.spnInbox.onclick = function () {
+            $("#spnInbox").click(function () {
                 if (oMailbox.info.folder == constant.folders.INBOX) {
                     oMailbox.refreshFolder(constant.folders.INBOX);
                 } else {
                     oMailbox.switchFolder(constant.folders.INBOX);
                 }
-            };
+            });
 
-            this.spnTrash.onclick = function () {
+            $("#spnTrash").click(function () {
                 if (oMailbox.info.folder == constant.folders.TRASH) {
                     oMailbox.refreshFolder(constant.folders.TRASH);
                 } else {
                     oMailbox.switchFolder(constant.folders.TRASH);
                 }
-            };
-            this.spnEmpty.onclick = function () {
+            });
+            $("#spnEmpty").click(function () {
                 oMailbox.emptyTrash();
-            };
-            this.spnReply.onclick = function () {
+            });
+            $("#spnReply").click(function () {
                 oMailbox.reply(false);
-            };
-            this.spnReplyAll.onclick = function () {
+            });
+            $("#spnReplyAll").click(function () {
                 oMailbox.reply(true);
-            };
-            this.spnForward.onclick = function () {
+            });
+            $("#spnForward").click(function () {
                 oMailbox.forward();
-            };
-            this.spnCancel.onclick = function () {
+            });
+            $("#spnCancel").click(function () {
                 oMailbox.cancelReply();
-            };
-            this.spnSend.onclick = function () {
+            });
+            $("#spnSend").click(function () {
                 oMailbox.sendMail();
-            };
+            });
+            $("#aaddCC").click(function () {
+                oMailbox.addCC();
+            });
+            $("#aremoveCC").click(function() {
+                oMailbox.removeCC();
+            });
+
+            $("#aremoveCC").hide();
+            $("#CC").hide();
         },
 
         /**
@@ -403,10 +385,11 @@ define(function(require, exports, module) {
         renderFolder: function () {;
             var tblMain = this.tblMain;
 
+            $("#tblMain").children("tBody").children().remove();
             //remove all child nodes
-            while (tblMain.tBodies[0].hasChildNodes()) {
+            /*while (tblMain.tBodies[0].hasChildNodes()) {
                 tblMain.tBodies[0].removeChild(tblMain.tBodies[0].firstChild);
-            }
+            }*/
 
             //create document fragment to store new DOM objects
             var oFragment = document.createDocumentFragment();
@@ -527,12 +510,12 @@ define(function(require, exports, module) {
          * @param sMessage The message to display.
          */
         showNotice: function (sType, sMessage) {
-            var divNotice = this.divNotice;
-            divNotice.className = sType;
-            divNotice.innerHTML = sMessage;
-            divNotice.style.visibility = "visible";
+            var $divNotice = $("#divNotice");
+            $divNotice.addClass(sType);
+            $divNotice.text(sMessage);
+            $divNotice.show();
             setTimeout(function () {
-                divNotice.style.visibility = "hidden";
+                $divNotice.hide();
             }, constant.iShowNoticeTime);
         },
 
@@ -543,11 +526,26 @@ define(function(require, exports, module) {
          * @param iCount The number of unread messages.
          */
         updateUnreadCount: function (iCount) {
-            this.spnUnreadMail.innerHTML = iCount > 0 ? " (" + iCount + ")" : "";
+            $("#spnUnreadMail").text(iCount > 0 ? " (" + iCount + ")" : "");
         },
+
+        /**
+         * [addCC description]
+         */
         addCC: function () {
-            var tr = document.createElement("tr");
-            tr.
+           $("#CC").show();
+           $("#aaddCC").hide();
+           $("#aremoveCC").show();
+        },
+
+        /**
+         * [removeCC description]
+         * @return {[type]}
+         */
+        removeCC: function () {
+            $("#CC").hide();
+            $("#aremoveCC").hide();
+            $("#aaddCC").show();
         }
         
     };
@@ -594,17 +592,16 @@ define(function(require, exports, module) {
      * @param sData The data returned from the server.
      */
     function sendConfirmation(sData) {
-        var oResponse = JSON.parse(sData);
-        if (oResponse.error) {
-            alert("An error occurred:\n" + oResponse.message);
+        if (sData.error) {
+            alert("An error occurred:\n" + sData.message);
         } else {
-            oMailbox.showNotice("info", oResponse.message);
-            oMailbox.divComposeMail.style.display = "none";
-            oMailbox.divReadMail.style.display = "none";
-            oMailbox.divFolder.style.display = "block";
+            oMailbox.showNotice("info", sData.message);
+            $("#divComposeMail").hide();
+            $("#divReadMail").hide();
+            $("#divFolder").show();
         }
-        oMailbox.divComposeMailForm.style.display  = "block";
-        oMailbox.divComposeMailStatus.style.display = "none";
+        $("#divComposeMailForm").show();
+        $("#divComposeMailStatus").hide();
         oMailbox.setProcessing(false);
     }
 

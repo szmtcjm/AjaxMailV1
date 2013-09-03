@@ -218,6 +218,10 @@ td.field-label-container label {
     font-size: 80%;
 }
 
+td.field-label-CC {
+    font-size: 50%;
+}
+
 td.field-container {
     padding: 4px;
 }
